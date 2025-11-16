@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Holder Wallet</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root { color-scheme: light dark; font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0b0d12; color: #f8f9fc; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; background: radial-gradient(circle at top, rgba(0, 200, 255, 0.25), transparent), #05060a; }
+      main { width: 100%; max-width: 900px; padding: 2rem 2rem; border-radius: 22px; background: rgba(14, 18, 30, 0.9); border: 1px solid rgba(80, 200, 255, 0.2); box-shadow: 0 28px 52px rgba(8, 12, 24, 0.45); }
+      header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.4rem; gap: 1rem; }
+      h1 { margin: 0; font-size: 1.6rem; font-weight: 700; }
+      .subtitle { margin: 0.3rem 0 0; color: #b6e6ff; font-size: 0.95rem; }
+      button { appearance: none; border: none; cursor: pointer; border-radius: 12px; padding: 0.8rem 1.2rem; font-size: 0.95rem; font-weight: 600; background: linear-gradient(135deg, #00c2ff, #0078ff); color: #fff; box-shadow: 0 12px 24px rgba(0, 150, 255, 0.25); }
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+      .grid { display: grid; gap: 1rem; }
+      .panel { border-radius: 18px; border: 1px solid rgba(80, 200, 255, 0.25); background: rgba(8, 12, 20, 0.92); padding: 1.2rem; }
+      label { font-weight: 600; color: #cfeeff; display: block; margin-bottom: 0.4rem; }
+      input, textarea, select { width: 100%; padding: 0.85rem 1rem; border-radius: 14px; border: 1px solid rgba(120, 210, 255, 0.3); background: rgba(10, 14, 24, 0.85); color: #f6f9ff; font-size: 0.95rem; }
+      textarea { min-height: 160px; font-family: "JetBrains Mono", "Fira Code", monospace; }
+      .row { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+      @media (min-width: 840px) { .row { grid-template-columns: 1fr 1fr; } }
+      .list { display: grid; gap: 0.6rem; }
+      .card { border: 1px solid rgba(90, 215, 255, 0.25); border-radius: 14px; padding: 0.9rem; display: grid; gap: 0.35rem; }
+      .muted { color: #9ad4ff; font-size: 0.9rem; }
+      .mono { font-family: "JetBrains Mono", "Fira Code", monospace; word-break: break-word; }
+      .inline { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+      .danger { background: linear-gradient(135deg, #ff4d6d, #d6336c); }
+      .ghost { background: transparent; color: #bde2ff; border: 1px dashed rgba(120, 210, 255, 0.35); }
+      .output { font-family: "JetBrains Mono", "Fira Code", monospace; border: 1px solid rgba(95, 160, 220, 0.35); background: rgba(5, 8, 14, 0.9); padding: 1rem; border-radius: 14px; white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto; }
+      .footer { margin-top: 1rem; text-align: center; color: #a8d9ff; font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Holder Wallet</h1>
+          <p class="subtitle">Lưu trữ nhiều VC, chọn lọc để trình diện VP và ký EIP-712 bằng ví.</p>
+        </div>
+        <button id="connectBtn">Connect Wallet</button>
+      </header>
+
+      <section class="grid row">
+        <div class="panel">
+          <label>Import VC (JSON)</label>
+          <textarea id="vcInput" placeholder="Dán VC JSON từ Issuer..."></textarea>
+          <div class="inline">
+            <button id="saveVcBtn">Lưu VC</button>
+            <button id="clearAllBtn" class="ghost">Xóa tất cả</button>
+          </div>
+        </div>
+        <div class="panel">
+          <label>VP Metadata</label>
+          <div class="grid">
+            <div>
+              <label for="audience">Audience (tùy chọn)</label>
+              <input id="audience" placeholder="did:ethr:... hoặc URL" />
+            </div>
+            <div>
+              <label for="nonce">Nonce (tùy chọn)</label>
+              <input id="nonce" placeholder="random-uuid" />
+            </div>
+            <div>
+              <label for="expiry">Expiry (ISO, tùy chọn)</label>
+              <input id="expiry" placeholder="2025-12-31T23:59:59Z" />
+            </div>
+          </div>
+          <div class="inline" style="margin-top: .6rem">
+            <button id="signVpBtn" disabled>Ký VP</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-top:1rem">
+        <label>Danh sách VC đã lưu</label>
+        <p class="muted" style="margin-top:.3rem;margin-bottom:.6rem">VC có cấu trúc Merkle (có <code>merkle.salts</code> & <code>proof.merkleRoot</code>) sẽ hiển thị danh sách claim để chọn lọc. VC mẫu kiểu cũ (legacy) ký toàn bộ <code>credentialSubject</code> nên không thể chọn từng claim bảo toàn chữ ký & cần được re-issue.</p>
+        <div id="vcList" class="list"></div>
+      </section>
+
+      <section class="panel" style="margin-top:1rem">
+        <label>VP Output</label>
+        <pre id="vpOutput" class="output">Chưa tạo VP</pre>
+        <div class="inline">
+          <button id="copyVpBtn" class="ghost">Copy</button>
+          <button id="downloadVpBtn" class="ghost">Download</button>
+        </div>
+      </section>
+
+      <p class="footer">Sử dụng MetaMask (EIP-1193) để ký VP. Holder có thể chọn 1..n VC để trình diện.</p>
+    </main>
+    <script type="module" src="./assets/holder.js"></script>
+  </body>
+</html>

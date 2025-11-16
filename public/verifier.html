@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verifier Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: #080a0f;
+        color: #f7f9ff;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: radial-gradient(circle at top, rgba(86, 205, 255, 0.25), transparent),
+          #04060b;
+      }
+
+      main {
+        width: min(95vw, 820px);
+        padding: 2.5rem 3rem;
+        border-radius: 24px;
+        background: rgba(12, 16, 28, 0.9);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(85, 200, 255, 0.2);
+        box-shadow: 0 32px 60px rgba(8, 12, 24, 0.45);
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.9rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+      }
+
+      .subtitle {
+        margin-top: 0.35rem;
+        font-size: 1rem;
+        color: rgba(172, 215, 255, 0.85);
+      }
+
+      form {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        color: rgba(198, 234, 255, 0.95);
+        margin-bottom: 0.45rem;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 1rem 1.1rem;
+        border-radius: 16px;
+        border: 1px solid rgba(120, 210, 255, 0.3);
+        background: rgba(10, 14, 24, 0.85);
+        color: #f6f9ff;
+        font-size: 0.98rem;
+        resize: vertical;
+      }
+
+      textarea {
+        min-height: 200px;
+        font-family: "JetBrains Mono", "Fira Code", monospace;
+        line-height: 1.45;
+      }
+
+      ::placeholder {
+        color: rgba(194, 225, 255, 0.55);
+      }
+
+      button {
+        justify-self: start;
+        appearance: none;
+        border: none;
+        cursor: pointer;
+        border-radius: 14px;
+        padding: 0.95rem 1.9rem;
+        font-size: 0.98rem;
+        font-weight: 600;
+        background: linear-gradient(135deg, #00c2ff, #0078ff);
+        color: #fff;
+        box-shadow: 0 18px 36px rgba(0, 150, 255, 0.32);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 24px 45px rgba(0, 150, 255, 0.4);
+      }
+
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+      }
+
+      .result-card {
+        margin-top: 2.5rem;
+        padding: 1.6rem;
+        border-radius: 18px;
+        border: 1px solid rgba(90, 215, 255, 0.3);
+        background: rgba(8, 12, 20, 0.92);
+        display: grid;
+        gap: 1rem;
+      }
+
+      .result-card h2 {
+        margin: 0;
+        font-size: 1.05rem;
+        color: rgba(165, 220, 255, 0.9);
+        letter-spacing: 0.02em;
+      }
+
+      .status-line {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      .status-label {
+        font-size: 0.9rem;
+        color: rgba(180, 220, 255, 0.6);
+      }
+
+      .status-value {
+        font-family: "JetBrains Mono", "Fira Code", monospace;
+        font-size: 0.95rem;
+        color: #eef6ff;
+        word-break: break-word;
+      }
+
+      .log {
+        font-family: "JetBrains Mono", "Fira Code", monospace;
+        font-size: 0.94rem;
+        color: rgba(160, 215, 255, 0.95);
+        white-space: pre-wrap;
+      }
+
+      @media (max-width: 680px) {
+        main {
+          padding: 2rem 1.5rem;
+        }
+
+        header {
+          flex-direction: column;
+        }
+
+        button {
+          justify-self: stretch;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Verifier Control Panel</h1>
+          <p class="subtitle">
+            Dán contract address và Verifiable Presentation (VP) để xác thực chứng chỉ Holder cung cấp.
+          </p>
+        </div>
+      </header>
+
+      <form id="verifyForm">
+        <div>
+          <label for="contractAddress">Địa chỉ hợp đồng DIDRegistry</label>
+          <input
+            type="text"
+            id="contractAddress"
+            placeholder="0x..."
+            autocomplete="off"
+            required
+          />
+        </div>
+
+        <div>
+          <label for="vpInput">Verifiable Presentation (JSON)</label>
+          <textarea
+            id="vpInput"
+            placeholder="Dán nội dung VP mà Holder gửi..."
+            required
+          ></textarea>
+        </div>
+
+        <button type="submit" id="verifyBtn">Verify Presentation</button>
+      </form>
+
+      <section class="result-card">
+        <h2>Verification Status</h2>
+        <div class="status-line">
+          <span class="status-label">Holder DID:</span>
+          <div class="status-value" id="holderDid">Chưa xác định</div>
+        </div>
+        <div class="status-line">
+          <span class="status-label">CID (từ DIDRegistry):</span>
+          <div class="status-value" id="resolvedCid">N/A</div>
+        </div>
+        <div class="status-line">
+          <span class="status-label">DID Owner:</span>
+          <div class="status-value" id="didOwner">N/A</div>
+        </div>
+        <div class="status-line">
+          <span class="status-label">Kết quả xác thực:</span>
+          <div class="status-value" id="verificationOutcome">Chưa xác thực</div>
+        </div>
+        <div class="status-line">
+          <span class="status-label">Thông tin chứng chỉ:</span>
+          <div class="log" id="credentialSummary">Chờ kết quả xác thực...</div>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.umd.min.js"></script>
+    <script>
+      (function () {
+        const verifyForm = document.getElementById('verifyForm');
+        const verifyButton = document.getElementById('verifyBtn');
+        const contractInput = document.getElementById('contractAddress');
+        const vpInput = document.getElementById('vpInput');
+
+        const holderDidLabel = document.getElementById('holderDid');
+        const resolvedCidLabel = document.getElementById('resolvedCid');
+        const didOwnerLabel = document.getElementById('didOwner');
+        const outcomeLabel = document.getElementById('verificationOutcome');
+        const credentialSummaryLabel = document.getElementById('credentialSummary');
+
+        const DID_REGISTRY_ABI = [
+          'function resolveDID(string did) public view returns (string)',
+          'function getDIDOwner(string did) public view returns (address)',
+          'function didIsRegistered(string did) public view returns (bool)',
+        ];
+
+        const state = {
+          verifying: false,
+          ethersRef: null,
+        };
+
+        function ensureEthers() {
+          if (!state.ethersRef) {
+            state.ethersRef = window.ethers || null;
+          }
+          if (!state.ethersRef) {
+            throw new Error('Không tải được thư viện ethers.js. Hãy làm mới trang hoặc kiểm tra kết nối mạng.');
+          }
+          return state.ethersRef;
+        }
+
+        function resetOutputs() {
+          holderDidLabel.textContent = 'Chưa xác định';
+          resolvedCidLabel.textContent = 'N/A';
+          didOwnerLabel.textContent = 'N/A';
+          setOutcome('Chưa xác thực', 'idle');
+          credentialSummaryLabel.textContent = 'Chờ kết quả xác thực...';
+        }
+
+        function setOutcome(message, status) {
+          outcomeLabel.textContent = message;
+          outcomeLabel.dataset.status = status;
+        }
+
+        function extractHolderDid(vp) {
+          if (typeof vp !== 'object' || vp === null) {
+            return null;
+          }
+          if (typeof vp.holder === 'string' && vp.holder.length > 0) {
+            return vp.holder;
+          }
+          const credentials = normalizeCredentialArray(vp.verifiableCredential);
+          for (const cred of credentials) {
+            const subject = cred.credentialSubject || {};
+            if (typeof subject === 'object' && subject !== null) {
+              if (typeof subject.id === 'string' && subject.id.length > 0) {
+                return subject.id;
+              }
+              if (typeof subject.did === 'string' && subject.did.length > 0) {
+                return subject.did;
+              }
+            }
+          }
+          return null;
+        }
+
+        function recoverIssuerAddressFromDid(did) {
+          // did:ethr:network:0xabc... OR did:ethr:0xabc... -> take last segment starting with 0x
+          if (!did || typeof did !== 'string') return null;
+          const parts = did.split(':');
+            for (let i = parts.length - 1; i >= 0; i--) {
+              if (parts[i].startsWith('0x') && parts[i].length >= 40) {
+                return parts[i].toLowerCase();
+              }
+            }
+          return null;
+        }
+
+        function extractCredentials(vp) {
+          if (!vp) return [];
+          if (vp.verifiableCredential) return normalizeCredentialArray(vp.verifiableCredential);
+          // If input itself looks like a VC (has credentialSubject & proof)
+          if (vp.credentialSubject && vp.proof) return [vp];
+          return [];
+        }
+
+        function buildTypedValueForVC(vc, primaryType) {
+          const issuerDid = typeof vc.issuer === 'string' ? vc.issuer : vc.issuer?.id;
+          const holder = vc.holder || vc.credentialSubject?.id || vc.credentialSubject?.did || '';
+          if (primaryType === 'VerifiableCredentialRoot') {
+            const merkleRoot = vc.proof?.merkleRoot;
+            const algo = vc.proof?.hashAlgorithm || 'keccak256';
+            return { issuer: issuerDid, issuanceDate: vc.issuanceDate, holder, merkleRoot, algo };
+          }
+          // default legacy path (full subject)
+          return { issuer: issuerDid, issuanceDate: vc.issuanceDate, holder, credentialSubject: vc.credentialSubject || {} };
+        }
+
+        async function verifyCredentialSignature(vc, ethers) {
+          if (!vc || !vc.proof || vc.proof.type !== 'EthereumEip712Signature2021') {
+            return { skipped: true, reason: 'Không phải EIP-712 proof.' };
+          }
+          const proof = vc.proof;
+          const domain = proof.eip712?.domain;
+          const types = proof.eip712?.types;
+          const primaryType = proof.eip712?.primaryType;
+          const signature = proof.proofValue;
+          if (!domain || !types || !primaryType || !signature) {
+            return { error: 'Thiếu dữ liệu EIP-712 trong proof.' };
+          }
+          const message = buildTypedValueForVC(vc, primaryType);
+          try {
+            const recovered = ethers.verifyTypedData(domain, types, message, signature).toLowerCase();
+            const issuerDid = typeof vc.issuer === 'string' ? vc.issuer : vc.issuer?.id;
+            const expected = recoverIssuerAddressFromDid(issuerDid) || 'unknown';
+            const match = expected !== 'unknown' && recovered === expected;
+            return { recovered, expected, match };
+          } catch (e) {
+            return { error: 'Lỗi verifyTypedData: ' + (e.message || String(e)) };
+          }
+        }
+
+        function normalizeCredentialArray(value) {
+          if (!value) return [];
+          if (Array.isArray(value)) return value.filter(Boolean);
+          return [value];
+        }
+
+        function summarizeCredentials(vp) {
+          const credentials = normalizeCredentialArray(vp.verifiableCredential);
+          if (!credentials.length) {
+            return 'VP không chứa trường "verifiableCredential".';
+          }
+
+          return credentials
+            .map((cred, index) => {
+              const title = cred.type ? cred.type.join ? cred.type.join(', ') : String(cred.type) : 'Credential';
+              const issuer = typeof cred.issuer === 'string' ? cred.issuer : cred.issuer?.id;
+              const issuanceDate = cred.issuanceDate || cred.validFrom;
+              const subject = cred.credentialSubject || {};
+              const subjectId = subject.id || subject.did || 'Không rõ';
+              const claimPreview = Object.entries(subject)
+                .filter(([key]) => key !== 'id' && key !== 'did')
+                .map(([key, value]) => `${key}: ${formatClaimValue(value)}`)
+                .slice(0, 5)
+                .join('\n    ');
+
+              return [
+                `Credential #${index + 1}`,
+                `  Loại: ${title}`,
+                issuer ? `  Issuer: ${issuer}` : null,
+                issuanceDate ? `  Issued: ${issuanceDate}` : null,
+                `  Subject: ${subjectId}`,
+                claimPreview ? `  Claim:
+    ${claimPreview}` : null,
+              ]
+                .filter(Boolean)
+                .join('\n');
+            })
+            .join('\n\n');
+        }
+
+        function formatClaimValue(value) {
+          if (value === null || value === undefined) return 'null';
+          if (typeof value === 'object') {
+            return JSON.stringify(value);
+          }
+          return String(value);
+        }
+
+        async function getProvider() {
+          const ethers = ensureEthers();
+          if (window.ethereum) {
+            return new ethers.BrowserProvider(window.ethereum, 'any');
+          }
+          throw new Error('Không tìm thấy ví hoặc RPC. Hãy cài đặt MetaMask hoặc cấu hình provider.');
+        }
+
+        async function handleVerify(event) {
+          event.preventDefault();
+          if (state.verifying) return;
+
+          const contractAddress = contractInput.value.trim();
+          const vpRaw = vpInput.value.trim();
+          resetOutputs();
+
+          try {
+            state.verifying = true;
+            verifyButton.disabled = true;
+            setOutcome('Đang xác thực...', 'info');
+
+            const ethers = ensureEthers();
+
+            if (!ethers.isAddress(contractAddress)) {
+              throw new Error('Địa chỉ hợp đồng không hợp lệ.');
+            }
+            if (!vpRaw) {
+              throw new Error('Vui lòng dán nội dung VP (định dạng JSON).');
+            }
+
+            let vpJson;
+            try {
+              vpJson = JSON.parse(vpRaw);
+            } catch (parseError) {
+              console.error(parseError);
+              throw new Error('VP không phải JSON hợp lệ.');
+            }
+
+            const holderDid = extractHolderDid(vpJson);
+            if (!holderDid) {
+              throw new Error('Không tìm thấy DID của holder trong VP.');
+            }
+            holderDidLabel.textContent = holderDid;
+
+            credentialSummaryLabel.textContent = summarizeCredentials(vpJson);
+
+            const provider = await getProvider();
+            const network = await provider.getNetwork();
+
+            let contractRunner = provider;
+            try {
+              contractRunner = await provider.getSigner();
+            } catch (_) {
+              contractRunner = provider;
+            }
+
+            const contract = new ethers.Contract(contractAddress, DID_REGISTRY_ABI, contractRunner);
+
+            const [cid, isRegistered] = await Promise.all([
+              contract.resolveDID(holderDid),
+              contract.didIsRegistered(holderDid),
+            ]);
+
+            const ownerAddress = isRegistered ? await contract.getDIDOwner(holderDid) : null;
+
+            resolvedCidLabel.textContent = cid || 'Không tìm thấy CID.';
+            didOwnerLabel.textContent = ownerAddress || 'Không có dữ liệu';
+
+            if (!isRegistered || !cid) {
+              setOutcome('❌ DID chưa được đăng ký hoặc CID trống.', 'error');
+              return;
+            }
+
+            // 1) Verify VC headers (issuer signatures)
+            const credentials = extractCredentials(vpJson);
+            const ethersLib = ethers; // from ensureEthers
+            let allOk = true;
+            const lines = [];
+            const vcRootsFromHeaders = [];
+            for (let i = 0; i < credentials.length; i++) {
+              const cred = credentials[i];
+              const sig = await verifyCredentialSignature(cred, ethersLib);
+              if (sig.error) {
+                allOk = false; lines.push(`VC#${i}: lỗi chữ ký Issuer: ${sig.error}`);
+              } else if (sig.skipped) {
+                lines.push(`VC#${i}: bỏ qua - ${sig.reason}`);
+              } else {
+                lines.push(`VC#${i}: issuerSig ok (${sig.match ? 'match' : 'mismatch'})`);
+                if (!sig.match) allOk = false;
+              }
+              const root = cred?.proof?.merkleRoot; if (root) vcRootsFromHeaders.push(root.toLowerCase());
+            }
+
+            // 2) Verify VP signature over vcRoots
+            const vpProof = vpJson?.proof;
+            let vpSigOk = false; let vpSignerAddr = null; let vpExpectedAddr = null;
+            if (vpProof?.type === 'EthereumEip712Signature2021') {
+              try {
+                const domain = vpProof?.eip712?.domain || { name: 'VerifiablePresentation', version: '1', chainId: Number(network.chainId) };
+                const types = vpProof?.eip712?.types || { VP: [
+                  { name: 'holder', type: 'string' },
+                  { name: 'aud', type: 'string' },
+                  { name: 'nonce', type: 'string' },
+                  { name: 'exp', type: 'string' },
+                  { name: 'vcRoots', type: 'bytes32[]' },
+                ] };
+                const meta = vpProof?.metadata || {};
+                const vcRoots = (meta.vcRoots || []).map((x) => String(x).toLowerCase());
+                // sanity: compare with headers
+                const setA = new Set(vcRootsFromHeaders);
+                const setB = new Set(vcRoots);
+                const sameRoots = vcRoots.length === vcRootsFromHeaders.length && vcRoots.every((r) => setA.has(r)) && vcRootsFromHeaders.every((r) => setB.has(r));
+                if (!sameRoots) lines.push('Cảnh báo: vcRoots trong VP không khớp với headers.');
+                const message = {
+                  holder: vpJson.holder || holderDid,
+                  aud: meta.aud || '',
+                  nonce: meta.nonce || '',
+                  exp: meta.exp || '',
+                  vcRoots,
+                };
+                const recovered = ethersLib.verifyTypedData(domain, types, message, vpProof.proofValue).toLowerCase();
+                vpSignerAddr = recovered;
+                vpExpectedAddr = (holderDid.split(':').pop() || '').toLowerCase();
+                vpSigOk = vpExpectedAddr && recovered === vpExpectedAddr;
+                if (!vpSigOk) allOk = false;
+                lines.push(`VP: recovered=${recovered} expected=${vpExpectedAddr} match=${vpSigOk}`);
+              } catch (e) {
+                lines.push('VP: lỗi verifyTypedData: ' + (e.message || String(e)));
+                allOk = false;
+              }
+            } else {
+              lines.push('VP: thiếu hoặc không đúng kiểu proof EIP-712');
+              allOk = false;
+            }
+
+            // 3) Verify Merkle proofs for disclosed claims
+            function verifyProof(root, leaf, siblings) {
+              try {
+                let current = leaf;
+                for (const s of siblings || []) {
+                  const h = String(s.hash);
+                  if (s.position === 'left') {
+                    current = ethersLib.keccak256(ethersLib.concat([h, current]));
+                  } else {
+                    current = ethersLib.keccak256(ethersLib.concat([current, h]));
+                  }
+                }
+                return String(current).toLowerCase() === String(root).toLowerCase();
+              } catch (_) { return false; }
+            }
+            function leafHashLocal(k, v, salt) {
+              const payload = JSON.stringify({ k, v, salt });
+              return ethersLib.keccak256(ethersLib.toUtf8Bytes(payload));
+            }
+
+            const proofs = Array.isArray(vpJson.merkleProofs) ? vpJson.merkleProofs : [];
+            for (const p of proofs) {
+              const vcIdx = Number(p.vcIndex);
+              const vcHeader = credentials[vcIdx];
+              const root = vcHeader?.proof?.merkleRoot;
+              const leaf = leafHashLocal(p.key, p.value, p.salt);
+              const ok = verifyProof(root, leaf, p.siblings);
+              lines.push(`Proof for VC#${vcIdx} key=${p.key}: ${ok ? 'OK' : 'FAIL'}`);
+              if (!ok) allOk = false;
+            }
+
+            const baseStatus = '✅ DID hợp lệ trên contract';
+            if (allOk) {
+              setOutcome(baseStatus + ' & VC/VP chữ ký và proof hợp lệ.', 'success');
+            } else {
+              setOutcome(baseStatus + ' nhưng có lỗi ở VC/VP/proof.', 'warn');
+            }
+            credentialSummaryLabel.textContent += '\n\n--- Verification Report ---\n' + lines.join('\n');
+          } catch (error) {
+            console.error(error);
+            setOutcome(error.message || 'Xác thực thất bại.', 'error');
+          } finally {
+            state.verifying = false;
+            verifyButton.disabled = false;
+          }
+        }
+
+        verifyForm.addEventListener('submit', handleVerify);
+        resetOutputs();
+        setOutcome('Chưa xác thực', 'idle');
+      })();
+    </script>
+  </body>
+</html>
