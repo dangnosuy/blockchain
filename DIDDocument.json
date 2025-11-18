@@ -1,0 +1,36 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/v2"
+  ],
+  "id": "did:ethr:sepolia:0x1d0911a84dcc58359c37658f2d57e78f3ec2792a",
+  "verificationMethod": [
+    {
+      "id": "did:ethr:sepolia:0x1d0911a84dcc58359c37658f2d57e78f3ec2792a#controller",
+      "type": "EcdsaSecp256k1RecoveryMethod2020",
+      "controller": "did:ethr:sepolia:0x1d0911a84dcc58359c37658f2d57e78f3ec2792a",
+      "blockchainAccountId": "0x1d0911a84dcc58359c37658f2d57e78f3ec2792a@eip155:11155111",
+      "publicKeyHex": "0x043fc4ffd8c9a300530f5dc061365c23e7399d7d6084be22ee1ea678765a25502ba7aefbbb31b4888005bb24bf7bbbc62997aac4999cf6b2d917bc693dddf88a2a"
+    }
+  ],
+  "authentication": [
+    "did:ethr:sepolia:0x1d0911a84dcc58359c37658f2d57e78f3ec2792a#controller"
+  ],
+  "assertionMethod": [
+    "did:ethr:sepolia:0x1d0911a84dcc58359c37658f2d57e78f3ec2792a#controller"
+  ],
+  "capabilityInvocation": [
+    "did:ethr:sepolia:0x1d0911a84dcc58359c37658f2d57e78f3ec2792a#controller"
+  ],
+  "capabilityDelegation": [
+    "did:ethr:sepolia:0x1d0911a84dcc58359c37658f2d57e78f3ec2792a#controller"
+  ],
+  "service": [],
+  "proof": {
+    "type": "EthereumPersonalSignature2021",
+    "created": "2025-11-16T15:53:14.357Z",
+    "purpose": "publicKeyBinding",
+    "challenge": "did-public-key-binding:did:ethr:sepolia:0x1d0911a84dcc58359c37658f2d57e78f3ec2792a:1763308391468",
+    "signature": "0xd7d4a771bf010c09071f81838ac092f57a06d6b987cdf7385cae797d68ee357149bae9781464be71e1d570c2217025649123b75bdad8415fb2906e9923633a8a1b"
+  }
+}

@@ -14,7 +14,8 @@ import { CredentialPlugin } from '@veramo/credential-w3c'
 import { EthrDIDProvider } from '@veramo/did-provider-ethr'
 import { Resolver } from 'did-resolver'
 import { getResolver as ethrDidResolver } from 'ethr-did-resolver'
-import { BrowserProvider, Eip1193Provider, Contract, keccak256, toUtf8Bytes, getBytes } from 'ethers'
+import { BrowserProvider, Eip1193Provider, Contract, keccak256, toUtf8Bytes, getBytes, hashMessage, Signature } from 'ethers'
+import { Signature as NobleSignature } from '@noble/secp256k1'
 import type { IIdentifier } from '@veramo/core-types'
  
 
@@ -78,9 +79,21 @@ const addAttributeBtn = document.getElementById('addAttributeBtn') as HTMLButton
 const resetAttributesBtn = document.getElementById('resetAttributesBtn') as HTMLButtonElement
 const createVcBtn = document.getElementById('createVcBtn') as HTMLButtonElement
 const vcOutput = document.getElementById('vcOutput') as HTMLPreElement
+// DID Document elements (simplified)
+const generateDidDocBtn = document.getElementById('generateDidDocBtn') as HTMLButtonElement
+const didDocOutput = document.getElementById('didDocOutput') as HTMLPreElement
 const accountStatus = document.getElementById('accountStatus') as HTMLDivElement
 const networkStatus = document.getElementById('networkStatus') as HTMLDivElement
 const logArea = document.getElementById('logArea') as HTMLDivElement
+// Register result elements
+const registerResultCard = document.getElementById('registerResultCard') as HTMLDivElement
+const regDidEcho = document.getElementById('regDidEcho') as HTMLDivElement
+const regCidEcho = document.getElementById('regCidEcho') as HTMLDivElement
+const regResolvedCid = document.getElementById('regResolvedCid') as HTMLDivElement
+const regTxHashLink = document.getElementById('regTxHashLink') as HTMLAnchorElement
+const regBlockNumber = document.getElementById('regBlockNumber') as HTMLDivElement
+const regGasUsed = document.getElementById('regGasUsed') as HTMLDivElement
+const registerSuccessBanner = document.getElementById('registerSuccessBanner') as HTMLDivElement
 
 // =================== HELPER FUNCTIONS ===================
 function setLog(message: string, type: 'info' | 'warn' | 'error' | 'success' = 'info') {
@@ -188,6 +201,117 @@ function resetVcOutput(message = 'Chưa tạo VC') {
   vcOutput.textContent = message
 }
 
+// =================== DID DOCUMENT BUILD ===================
+interface DidDocument {
+  '@context': string[]
+  id: string
+  verificationMethod: Array<{
+    id: string
+    type: string
+    controller: string
+    blockchainAccountId: string
+    publicKeyHex: string
+  }>
+  authentication: string[]
+  assertionMethod: string[]
+  capabilityInvocation: string[]
+  capabilityDelegation: string[]
+  service: []
+  proof?: {
+    type: string
+    created: string
+    purpose: string
+    challenge: string
+    signature: string
+  }
+}
+
+let currentDidDocument: DidDocument | null = null
+
+// Utility: hex string -> Uint8Array
+function hexToBytes(hex: string): Uint8Array {
+  const clean = hex.startsWith('0x') ? hex.slice(2) : hex
+  if (clean.length % 2 !== 0) throw new Error('Invalid hex length')
+  const out = new Uint8Array(clean.length / 2)
+  for (let i = 0; i < clean.length; i += 2) {
+    out[i / 2] = parseInt(clean.slice(i, i + 2), 16)
+  }
+  return out
+}
+
+function buildDidDocument(did: string, address: string, chainId: number, publicKeyHex: string, challenge: string, signature: string): DidDocument {
+  const vmId = `${did}#controller`
+  return {
+    '@context': ['https://www.w3.org/ns/did/v1', 'https://w3id.org/security/v2'],
+    id: did,
+    verificationMethod: [
+      {
+        id: vmId,
+        type: 'EcdsaSecp256k1RecoveryMethod2020',
+        controller: did,
+        blockchainAccountId: `${address}@eip155:${chainId}`,
+        publicKeyHex,
+      },
+    ],
+    authentication: [vmId],
+    assertionMethod: [vmId],
+    capabilityInvocation: [vmId],
+    capabilityDelegation: [vmId],
+    service: [],
+    proof: {
+      type: 'EthereumPersonalSignature2021',
+      created: new Date().toISOString(),
+      purpose: 'publicKeyBinding',
+      challenge,
+      signature,
+    },
+  }
+}
+
+function renderDidDocument(doc: DidDocument) {
+  didDocOutput.textContent = JSON.stringify(doc, null, 2)
+}
+
+async function generateDidDocument() {
+  if (!state.provider || !state.currentAccount) {
+    setLog('Cần kết nối ví trước khi tạo DID Document.', 'warn')
+    return
+  }
+  try {
+    generateDidDocBtn.disabled = true
+    generateDidDocBtn.textContent = 'Đang tạo...'
+    setLog('Đang ký challenge để khôi phục public key...')
+    const network = await state.provider.getNetwork()
+    const chainId = Number(network.chainId)
+    const networkName = network.name === 'unknown' ? 'sepolia' : network.name
+    const did = `did:ethr:${networkName}:${state.currentAccount}`
+  const signer = await state.provider.getSigner()
+  const challenge = `did-public-key-binding:${did}:${Date.now()}`
+  const signature = await signer.signMessage(challenge)
+  const msgHash = hashMessage(challenge)
+  const sigObj = Signature.from(signature)
+  const rHex = sigObj.r.slice(2)
+  const sHex = sigObj.s.slice(2)
+  const recId = sigObj.v - 27 // 0 or 1
+  const compactSigHex = rHex + sHex
+  const nobleSig = NobleSignature.fromCompact(compactSigHex).addRecoveryBit(recId)
+  const point = nobleSig.recoverPublicKey(hexToBytes(msgHash))
+  const pubKeyHex = '0x' + point.toHex(false) // uncompressed (0x04 + x + y)
+
+    currentDidDocument = buildDidDocument(did, state.currentAccount, chainId, pubKeyHex, challenge, signature)
+    renderDidDocument(currentDidDocument)
+    setLog('Đã tạo DID Document với publicKeyHex.', 'success')
+  } catch (e: any) {
+    console.error(e)
+    setLog(e.message || 'Không thể tạo DID Document.', 'error')
+  } finally {
+    generateDidDocBtn.disabled = false
+    generateDidDocBtn.textContent = 'Generate DID Document'
+  }
+}
+
+// Removed copy & upload functions (user handles Pinata externally)
+
 // =================== WALLET CONNECTION ===================
 async function connectWallet() {
   if (!window.ethereum) {
@@ -214,12 +338,21 @@ async function connectWallet() {
 
     accountStatus.textContent = state.currentAccount
     networkStatus.textContent = `${network.name} (#${network.chainId})`
-    setLog('Kết nối ví thành công. Đang khởi tạo Veramo agent...', 'info')
+    // Auto-build Issuer DID from network + address and fill UI field readonly
+    const networkName = network.name === 'unknown' ? 'sepolia' : network.name
+    const autoDid = `did:ethr:${networkName}:${state.currentAccount}`
+    if (didInput) {
+      didInput.value = autoDid
+      didInput.readOnly = true
+    }
+    // Enable DID Document generation button now that wallet is connected
+    if (generateDidDocBtn) generateDidDocBtn.disabled = false
+    setLog('Kết nối ví thành công. Đang khởi tạo Veramo agent & thiết lập Issuer DID...', 'info')
 
     // Initialize Veramo agent with MetaMask signing
     await initializeVeramoAgent()
 
-    setLog('Sẵn sàng đăng ký DID và tạo VC.', 'success')
+  setLog('Sẵn sàng: Issuer DID đã tự động gán & có thể đăng ký / tạo VC.', 'success')
     registerButton.disabled = false
     updateCreateVcState()
   } catch (error: any) {
@@ -263,18 +396,42 @@ async function registerIssuerDID(event: Event) {
 
     const signer = await state.provider.getSigner()
     const contract = new Contract(contractAddress, DID_REGISTRY_ABI, signer)
-    
     const tx = await contract.registerDID(did, cid)
     setLog(`Đã gửi tx: ${tx.hash}. Đợi xác nhận...`)
-    
     const receipt = await tx.wait()
     if (receipt.status !== 1) {
       throw new Error('Giao dịch thất bại.')
     }
-    
-    setLog(`Đăng ký thành công! Tx block #${receipt.blockNumber}.`, 'success')
-    registerForm.reset()
-    contractAddressInput.value = contractAddress
+    // Confirm on-chain data
+    const readContract = new Contract(contractAddress, DID_REGISTRY_ABI, state.provider)
+    let resolved = ''
+    try {
+      resolved = await readContract.resolveDID(did)
+    } catch {}
+
+    // Build explorer link
+    const net = await state.provider.getNetwork()
+    const explorer = getExplorerTxBaseUrl(Number(net.chainId))
+    const txUrl = explorer ? `${explorer}${tx.hash}` : '#'
+
+    // Update result card
+    if (registerResultCard) registerResultCard.style.display = 'grid'
+    if (regDidEcho) regDidEcho.textContent = did
+    if (regCidEcho) regCidEcho.textContent = cid
+    if (regResolvedCid) regResolvedCid.textContent = resolved || '(Không đọc được)'
+    if (regTxHashLink) {
+      regTxHashLink.textContent = tx.hash
+      regTxHashLink.href = txUrl
+    }
+    if (regBlockNumber) regBlockNumber.textContent = String(receipt.blockNumber)
+    if (regGasUsed) regGasUsed.textContent = receipt.gasUsed ? receipt.gasUsed.toString() : 'N/A'
+    if (registerSuccessBanner) {
+      registerSuccessBanner.style.display = 'block'
+    }
+
+    const resolvedNote = resolved && resolved === cid ? 'Khớp CID on-chain.' : 'Chú ý: CID không khớp trên chain.'
+    setLog(`Đăng ký thành công! Block #${receipt.blockNumber}. ${resolvedNote}`, 'success')
+    // keep contract address; do not wipe did/cid so user can see values
   } catch (error: any) {
     console.error(error)
     if (error.code === 4001) {
@@ -282,10 +439,25 @@ async function registerIssuerDID(event: Event) {
     } else {
       setLog(error.message || 'Đăng ký thất bại.', 'error')
     }
+    if (registerSuccessBanner) registerSuccessBanner.style.display = 'none'
   } finally {
     state.isRegistering = false
     registerButton.disabled = !state.provider
     registerButton.textContent = 'Register Issuer Identity'
+  }
+}
+
+function getExplorerTxBaseUrl(chainId: number): string | null {
+  switch (chainId) {
+    case 1: return 'https://etherscan.io/tx/'
+    case 11155111: return 'https://sepolia.etherscan.io/tx/'
+    case 5: return 'https://goerli.etherscan.io/tx/'
+    case 137: return 'https://polygonscan.com/tx/'
+    case 80001: return 'https://mumbai.polygonscan.com/tx/'
+    case 10: return 'https://optimistic.etherscan.io/tx/'
+    case 42161: return 'https://arbiscan.io/tx/'
+    case 8453: return 'https://basescan.org/tx/'
+    default: return null
   }
 }
 
@@ -578,6 +750,7 @@ function setupEventListeners() {
   holderDidInput.addEventListener('input', updateCreateVcState)
   credentialTypeInput.addEventListener('input', updateCreateVcState)
   createVcBtn.addEventListener('click', createCredential)
+  generateDidDocBtn.addEventListener('click', generateDidDocument)
 }
 
 function watchWalletChanges() {
@@ -617,6 +790,8 @@ function init() {
   updateCreateVcState()
   resetVcOutput()
   setLog('Sẵn sàng. Hãy kết nối ví để bắt đầu.')
+  // Initial DID Document state
+  didDocOutput.textContent = 'Chưa tạo DID Document'
 }
 
 // Start the app

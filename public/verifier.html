@@ -220,6 +220,10 @@
           <div class="status-value" id="holderDid">Chưa xác định</div>
         </div>
         <div class="status-line">
+          <span class="status-label">Holder Addr (recovered vs declared):</span>
+          <div class="status-value" id="holderAddrStatus">N/A</div>
+        </div>
+        <div class="status-line">
           <span class="status-label">CID (từ DIDRegistry):</span>
           <div class="status-value" id="resolvedCid">N/A</div>
         </div>
@@ -248,7 +252,8 @@
 
         const holderDidLabel = document.getElementById('holderDid');
         const resolvedCidLabel = document.getElementById('resolvedCid');
-        const didOwnerLabel = document.getElementById('didOwner');
+  const didOwnerLabel = document.getElementById('didOwner');
+  const holderAddrStatus = document.getElementById('holderAddrStatus');
         const outcomeLabel = document.getElementById('verificationOutcome');
         const credentialSummaryLabel = document.getElementById('credentialSummary');
 
@@ -455,6 +460,7 @@
               throw new Error('Không tìm thấy DID của holder trong VP.');
             }
             holderDidLabel.textContent = holderDid;
+            holderAddrStatus.textContent = 'Đang kiểm tra...';
 
             credentialSummaryLabel.textContent = summarizeCredentials(vpJson);
 
@@ -505,7 +511,7 @@
               const root = cred?.proof?.merkleRoot; if (root) vcRootsFromHeaders.push(root.toLowerCase());
             }
 
-            // 2) Verify VP signature over vcRoots
+            // 2) Verify VP signature over vcRoots + holderAddr matching
             const vpProof = vpJson?.proof;
             let vpSigOk = false; let vpSignerAddr = null; let vpExpectedAddr = null;
             if (vpProof?.type === 'EthereumEip712Signature2021') {
@@ -537,7 +543,13 @@
                 vpExpectedAddr = (holderDid.split(':').pop() || '').toLowerCase();
                 vpSigOk = vpExpectedAddr && recovered === vpExpectedAddr;
                 if (!vpSigOk) allOk = false;
-                lines.push(`VP: recovered=${recovered} expected=${vpExpectedAddr} match=${vpSigOk}`);
+                const declaredHolderAddr = (vpProof.holderAddress || '').toLowerCase();
+                const addrConsistency = declaredHolderAddr ? (declaredHolderAddr === recovered && declaredHolderAddr === vpExpectedAddr) : (recovered === vpExpectedAddr);
+                holderAddrStatus.textContent = declaredHolderAddr
+                  ? `${recovered} ⇔ ${declaredHolderAddr} (${addrConsistency ? 'OK' : 'Mismatch'})`
+                  : `${recovered} (declared holderAddress thiếu)`;
+                if (!addrConsistency) { allOk = false; lines.push('VP: holder address mismatch giữa DID / proof.holderAddress / chữ ký.'); }
+                lines.push(`VP: recovered=${recovered} expected(DID)=${vpExpectedAddr} declared=${declaredHolderAddr||'n/a'} match=${vpSigOk && addrConsistency}`);
               } catch (e) {
                 lines.push('VP: lỗi verifyTypedData: ' + (e.message || String(e)));
                 allOk = false;

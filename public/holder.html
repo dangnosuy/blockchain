@@ -12,15 +12,20 @@
       * { box-sizing: border-box; }
       body { margin: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; background: radial-gradient(circle at top, rgba(0, 200, 255, 0.25), transparent), #05060a; }
       main { width: 100%; max-width: 900px; padding: 2rem 2rem; border-radius: 22px; background: rgba(14, 18, 30, 0.9); border: 1px solid rgba(80, 200, 255, 0.2); box-shadow: 0 28px 52px rgba(8, 12, 24, 0.45); }
-      header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.4rem; gap: 1rem; }
+      header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.4rem; gap: 1rem; flex-wrap: wrap; }
       h1 { margin: 0; font-size: 1.6rem; font-weight: 700; }
       .subtitle { margin: 0.3rem 0 0; color: #b6e6ff; font-size: 0.95rem; }
       button { appearance: none; border: none; cursor: pointer; border-radius: 12px; padding: 0.8rem 1.2rem; font-size: 0.95rem; font-weight: 600; background: linear-gradient(135deg, #00c2ff, #0078ff); color: #fff; box-shadow: 0 12px 24px rgba(0, 150, 255, 0.25); }
       button:disabled { opacity: 0.6; cursor: not-allowed; }
+      .badge { display:inline-flex; align-items:center; gap:.4rem; padding:.4rem .6rem; border-radius:999px; border:1px solid rgba(120,210,255,.35); font-size:.85rem; color:#bde2ff; background:rgba(8,12,20,.6) }
+      .badge.ok { border-color: rgba(80, 255, 180, .45); color:#b7ffde; background: rgba(8, 24, 16, .6) }
+      .badge.warn { border-color: rgba(255, 200, 120, .45); color:#ffe3b7; background: rgba(24, 16, 8, .6) }
       .grid { display: grid; gap: 1rem; }
       .panel { border-radius: 18px; border: 1px solid rgba(80, 200, 255, 0.25); background: rgba(8, 12, 20, 0.92); padding: 1.2rem; }
       label { font-weight: 600; color: #cfeeff; display: block; margin-bottom: 0.4rem; }
-      input, textarea, select { width: 100%; padding: 0.85rem 1rem; border-radius: 14px; border: 1px solid rgba(120, 210, 255, 0.3); background: rgba(10, 14, 24, 0.85); color: #f6f9ff; font-size: 0.95rem; }
+  /* form controls (exclude checkboxes) */
+  input:not([type="checkbox"]), textarea, select { width: 100%; padding: 0.85rem 1rem; border-radius: 14px; border: 1px solid rgba(120, 210, 255, 0.3); background: rgba(10, 14, 24, 0.85); color: #f6f9ff; font-size: 0.95rem; }
+  input[type="checkbox"] { width:auto; height:auto; margin:0; }
       textarea { min-height: 160px; font-family: "JetBrains Mono", "Fira Code", monospace; }
       .row { display: grid; grid-template-columns: 1fr; gap: 1rem; }
       @media (min-width: 840px) { .row { grid-template-columns: 1fr 1fr; } }
@@ -33,6 +38,18 @@
       .ghost { background: transparent; color: #bde2ff; border: 1px dashed rgba(120, 210, 255, 0.35); }
       .output { font-family: "JetBrains Mono", "Fira Code", monospace; border: 1px solid rgba(95, 160, 220, 0.35); background: rgba(5, 8, 14, 0.9); padding: 1rem; border-radius: 14px; white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto; }
       .footer { margin-top: 1rem; text-align: center; color: #a8d9ff; font-size: 0.9rem; }
+      /* Claim selection styling */
+      .claim-section { margin-top:.5rem; padding:.6rem .7rem; border:1px dashed rgba(120,210,255,.35); border-radius:12px; background: rgba(6,10,16,.45) }
+      .claim-title { margin:0 0 .4rem; color:#cfeeff; font-weight:600; font-size:.95rem }
+  .claim-list { display:flex; flex-direction:column; gap:.35rem }
+  .claim-row { display:flex; align-items:center; gap:.5rem; font-size:.9rem; color:#e6f6ff }
+  .claim-row input[type="checkbox"]{ flex:0 0 auto }
+  .claim-row span{ flex:1 1 auto }
+  /* Fancy checkboxes */
+  .claim-checkbox, .vc-checkbox { appearance:none; width:18px; height:18px; border-radius:6px; border:1.5px solid rgba(120,210,255,.6); background:rgba(10,14,24,.9); display:inline-grid; place-content:center; transition:border-color .15s, background .15s, box-shadow .15s }
+  .claim-checkbox::after, .vc-checkbox::after { content:""; width:6px; height:10px; border:2px solid #fff; border-left:0; border-top:0; transform:rotate(45deg) scale(0); transition:transform .12s ease-in-out }
+  .claim-checkbox:checked, .vc-checkbox:checked { border-color:rgba(0,200,255,.95); background:linear-gradient(135deg,#00c2ff,#0078ff); box-shadow:0 0 0 3px rgba(0,150,255,.2) inset }
+  .claim-checkbox:checked::after, .vc-checkbox:checked::after { transform:rotate(45deg) scale(1) }
     </style>
   </head>
   <body>
@@ -42,7 +59,10 @@
           <h1>Holder Wallet</h1>
           <p class="subtitle">Lưu trữ nhiều VC, chọn lọc để trình diện VP và ký EIP-712 bằng ví.</p>
         </div>
-        <button id="connectBtn">Connect Wallet</button>
+        <div class="inline">
+          <span id="walletStatus" class="badge warn">Chưa kết nối</span>
+          <button id="connectBtn">Connect Wallet</button>
+        </div>
       </header>
 
       <section class="grid row">
@@ -74,6 +94,87 @@
             <button id="signVpBtn" disabled>Ký VP</button>
           </div>
         </div>
+      </section>
+
+      <section class="panel" style="margin-top:1rem" id="secretExchangePanel">
+        <h3>Trao đổi bí mật với Guardians (E2EE)</h3>
+        <div class="inline" style="margin-bottom:.6rem">
+          <button id="hxGenIdentity">Tạo Holder Identity Key (X25519)</button>
+          <span id="hxIkPub" class="badge warn">Chưa tạo</span>
+        </div>
+        <div class="inline" style="flex-wrap:wrap; gap:.6rem">
+          <input id="hxGuardianAddress" placeholder="Guardian address (0x...)" style="flex:1 1 220px" />
+          <textarea id="hxGuardianBundle" placeholder='Dán Guardian Bundle JSON {"ik":"0x..","spk":"0x.."}' style="flex:1 1 320px; min-height:110px"></textarea>
+        </div>
+        <div class="inline" style="margin-top:.6rem">
+          <button id="hxDeriveSecret">Derive Shared Secret</button>
+          <button id="hxAddGuardian" class="ghost">Thêm vào danh sách commitments</button>
+          <button id="hxExportCommitments" class="ghost">Xuất commitments JSON</button>
+        </div>
+        <div class="grid" style="margin-top:.6rem">
+          <div>
+            <label>Shared Secret (32 bytes hex)</label>
+            <input id="hxSharedSecret" readonly placeholder="0x..." />
+          </div>
+          <div>
+            <label>Commitment keccak256(address,secret)</label>
+            <input id="hxCommitment" readonly placeholder="0x..." />
+          </div>
+        </div>
+        <div style="margin-top:.6rem">
+          <label>Danh sách commitments tạm thời (tích lũy)</label>
+          <pre id="hxCommitmentsList" class="output" style="max-height:180px">[]</pre>
+        </div>
+        <p class="muted" style="margin-top:.4rem">Bước: 1) Holder tạo key → gửi ikPub cho Guardian. 2) Guardian tạo bundle và gửi JSON (ik, spk). 3) Holder Derive → tạo secret & commitment (policyId sẽ tự tạo nếu chưa có). Lặp lại cho từng Guardian. 4) Xuất danh sách commitments và dán vào phần Thiết lập khôi phục ví bên dưới.</p>
+      </section>
+
+      <section class="panel" id="setupPanel" style="margin-top:1rem">
+        <div class="inline" style="justify-content:space-between; align-items:center;">
+          <h3 style="margin:0">Thiết lập khôi phục ví</h3>
+          <button id="toggleSetup" class="ghost" data-open="true">Thu gọn</button>
+        </div>
+        <div id="setupBody">
+        <div class="grid" style="margin-top:.6rem">
+          <input id="polPolicyId" placeholder="policyId (0x... hoặc để trống để tạo từ label)" />
+          <input id="polLabel" placeholder="label tuỳ chọn (sẽ keccak256 để ra policyId nếu chưa nhập)" />
+          <input id="polThreshold" type="number" min="1" placeholder="Threshold (ví dụ: 2)" />
+          <input id="polTotal" type="number" min="1" placeholder="Tổng số Guardians" />
+          <input id="polContract" placeholder="RecoveryContract address (0x...)" />
+        </div>
+        <div style="margin-top:.8rem">
+          <label>Commitments (nhận từ Guardians) – JSON array các 0x...</label>
+          <textarea id="polCommitments" class="mono" placeholder='["0x..","0x.."]'></textarea>
+        </div>
+        <div class="grid" style="grid-template-columns:1fr 1fr; gap:.6rem; margin-top:.6rem">
+          <button id="polComputeRoot">Tính merkleRoot</button>
+          <button id="polRegister">Đăng ký Policy on-chain</button>
+          <input id="polBatchId" placeholder="batchId (tùy chọn, 0x... hoặc sẽ tự tạo)" />
+          <button id="polUpdateRoot" class="ghost">Cập nhật Root (registerCommitmentBatch)</button>
+          <button id="polExportList" class="ghost">Export danh sách commitments cho Guardians</button>
+        </div>
+        </div>
+        <pre id="polOut" class="output">(n/a)</pre>
+      </section>
+
+      <section class="panel" id="recoveryPanel" style="margin-top:1rem">
+        <div class="inline" style="justify-content:space-between; align-items:center;">
+          <h3 style="margin:0">Khôi phục ví</h3>
+          <button id="toggleRecovery" class="ghost" data-open="true">Thu gọn</button>
+        </div>
+        <div id="recoveryBody">
+        <div class="grid">
+          <input id="recPolicyId" placeholder="policyId (bytes32 0x...)" />
+          <input id="recNonce" placeholder="nonce (tự do)" />
+          <input id="recNewOwner" placeholder="Địa chỉ ví mới Y (0x...)" />
+          <input id="recContract" placeholder="RecoveryContract address (0x...)" />
+        </div>
+        <div class="inline" style="margin-top:.6rem">
+          <button id="recComputeReq">Tạo recoveryRequestID</button>
+          <button id="recInitiate">Gọi initiateRecovery</button>
+          <button id="recFinalize" class="ghost">Finalize khi đủ ngưỡng</button>
+        </div>
+        </div>
+        <pre id="recOut" class="output">(n/a)</pre>
       </section>
 
       <section class="panel" style="margin-top:1rem">

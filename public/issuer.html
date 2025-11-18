@@ -312,6 +312,20 @@
         <button id="connectWallet">Connect Wallet</button>
       </header>
 
+      <h2 class="section-title">0. Tạo DID Document (Public Key)</h2>
+      <section class="panel" id="didDocPanel">
+        <div class="inline-actions" style="justify-content:flex-start; gap:0.8rem;">
+          <button type="button" id="generateDidDocBtn" disabled>Generate DID Document</button>
+        </div>
+        <div>
+          <label>DID Document (tự động chứa publicKeyHex)</label>
+          <pre class="vc-output" id="didDocOutput">Chưa tạo DID Document</pre>
+        </div>
+        <p style="font-size:0.75rem; color:#94a3ff; margin:0; line-height:1.4;">
+          Sau khi Connect Wallet, nhấn Generate để ký một thông điệp chứng thực và khôi phục public key Secp256k1. Bạn tự upload JSON này lên Pinata để lấy CID rồi dùng ở bước đăng ký.
+        </p>
+      </section>
+
       <h2 class="section-title">1. Đăng ký DID Document</h2>
       <form id="registerForm" class="panel">
         <div>
@@ -327,12 +341,13 @@
 
         <div class="grid-two">
           <div>
-            <label for="didInput">Issuer DID</label>
+            <label for="didInput">Issuer DID (tự động)</label>
             <input
               type="text"
               id="didInput"
-              placeholder="did:ethr:sepolia:0x..."
+              placeholder="Tự động sau khi Connect Wallet"
               autocomplete="off"
+              readonly
               required
             />
           </div>
@@ -349,7 +364,38 @@
         </div>
 
         <button type="submit" id="registerBtn" disabled>Register Issuer Identity</button>
+        <div id="registerSuccessBanner" style="display:none; margin-top:0.6rem; padding:0.9rem 1rem; border:1px solid rgba(90,200,150,0.35); background:rgba(40,90,70,0.35); color:#c6ffe3; border-radius:12px; font-size:0.85rem; font-weight:600; letter-spacing:0.5px;">
+          ✅ Đăng ký DID thành công. Kiểm tra thẻ kết quả bên dưới để xem chi tiết giao dịch.
+        </div>
       </form>
+
+      <section class="status-card" id="registerResultCard" style="display:none;">
+        <h2>Kết quả đăng ký</h2>
+        <div>
+          <span>DID:</span>
+          <div class="status-value" id="regDidEcho">N/A</div>
+        </div>
+        <div>
+          <span>CID (đã nhập):</span>
+          <div class="status-value" id="regCidEcho">N/A</div>
+        </div>
+        <div>
+          <span>Resolved CID (on-chain):</span>
+          <div class="status-value" id="regResolvedCid">N/A</div>
+        </div>
+        <div>
+          <span>Tx Hash:</span>
+          <div class="status-value"><a id="regTxHashLink" href="#" target="_blank" rel="noreferrer">N/A</a></div>
+        </div>
+        <div>
+          <span>Block #:</span>
+          <div class="status-value" id="regBlockNumber">N/A</div>
+        </div>
+        <div>
+          <span>Gas used:</span>
+          <div class="status-value" id="regGasUsed">N/A</div>
+        </div>
+      </section>
 
       <h2 class="section-title">2. Tạo Verifiable Credential</h2>
       <section class="panel" id="vcPanel">
