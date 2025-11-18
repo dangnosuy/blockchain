@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recovery Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root { color-scheme: light dark; font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif; background:#0b0d12; color:#f8f9fc; }
+      *{ box-sizing:border-box }
+      body{ margin:0; min-height:100vh; display:flex; justify-content:center; align-items:center; background: radial-gradient(circle at top, rgba(88,101,242,.35), transparent), #05060a; }
+      main{ width:100%; max-width: 860px; padding: 2.2rem 2.4rem; border-radius:24px; background: rgba(15,19,32,.85); border:1px solid rgba(120,132,255,.18); backdrop-filter: blur(14px); box-shadow: 0 32px 60px rgba(12,16,32,.45)}
+      header{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.8rem }
+      h1{ margin:0; font-size:1.7rem }
+      .subtitle{ margin:.35rem 0 0; font-size:.95rem; color:#b6c2ff }
+      button{ appearance:none; border:none; cursor:pointer; border-radius:12px; padding:.85rem 1.4rem; font-size:.95rem; font-weight:600; background: linear-gradient(135deg, #5865f2, #6c5ce7); color:#fff; box-shadow:0 12px 24px rgba(104,115,255,.25) }
+      button:disabled{ opacity:.55; cursor:not-allowed }
+      .panel{ margin-top:1rem; padding:1.4rem; border-radius:18px; background: rgba(8,11,21,.85); border:1px solid rgba(118,130,255,.28); display:grid; gap:1rem }
+      label{ display:block; font-weight:600; color:#d6dcff; margin-bottom:.35rem }
+      input, textarea{ width:100%; padding:.9rem 1rem; border-radius:14px; border:1px solid rgba(115,130,255,.25); background: rgba(10,13,25,.85); color:#f8f9fc; font-size:.95rem }
+      .grid-two{ display:grid; gap:1rem; grid-template-columns: 1fr }
+      @media (min-width: 860px){ .grid-two{ grid-template-columns: 1fr 1fr } }
+      .inline{ display:flex; gap:.7rem; align-items:center }
+      .status-card{ margin-top:1.6rem; padding:1rem 1.2rem; border-radius:14px; border:1px solid rgba(83,95,196,.35); background: rgba(8,11,21,.9); display:grid; gap:.5rem }
+      .mono{ font-family: "JetBrains Mono","Fira Code",monospace; }
+      .muted{ color:#a7b2ff }
+      pre.output{ font-family: "JetBrains Mono","Fira Code",monospace; font-size:.9rem; background: rgba(5,7,17,.9); border-radius:12px; padding:1rem; border: 1px solid rgba(95,108,220,.3); max-height:260px; overflow:auto; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Recovery Control</h1>
+          <p class="subtitle">Thiết lập chính sách khôi phục với Guardians và khởi phát quy trình phục hồi khóa.</p>
+        </div>
+        <button id="connect">Connect Wallet</button>
+      </header>
+
+      <h2 class="section-title">1. Tạo Recovery Policy</h2>
+      <section class="panel">
+        <div class="grid-two">
+          <div>
+            <label for="threshold">Threshold</label>
+            <input id="threshold" type="number" min="1" placeholder="vd: 2" />
+          </div>
+          <div>
+            <label for="total">Tổng số Guardians</label>
+            <input id="total" type="number" min="1" placeholder="vd: 3" />
+          </div>
+        </div>
+        <div>
+          <label for="guardians">Guardian descriptors (JSON array)</label>
+          <textarea id="guardians" rows="6" placeholder='[ { "pseudonymCommitment": "0x..", "channelRef": "did:example:..", "capabilities":["approve"] } ]'></textarea>
+        </div>
+        <div class="inline">
+          <button id="genPolicy" disabled>Generate Policy</button>
+          <button id="exportPolicy" disabled>Export JSON</button>
+        </div>
+        <div>
+          <label>Policy Preview</label>
+          <pre id="policyOut" class="output">Chưa tạo policy</pre>
+        </div>
+      </section>
+
+      <h2 class="section-title">2. Initiate Recovery</h2>
+      <section class="panel">
+        <div class="grid-two">
+          <div>
+            <label for="newKey">New Public Key (hex)</label>
+            <input id="newKey" type="text" placeholder="0x04..." />
+          </div>
+          <div>
+            <label for="nonce">Nonce</label>
+            <input id="nonce" type="text" placeholder="random string" />
+          </div>
+        </div>
+        <div class="inline">
+          <button id="initiate" disabled>Initiate Recovery</button>
+        </div>
+        <div class="status-card">
+          <div><span class="muted">Policy ID:</span> <span class="mono" id="policyIdView">N/A</span></div>
+          <div><span class="muted">Recovery Request ID:</span> <span class="mono" id="reqIdView">N/A</span></div>
+        </div>
+      </section>
+
+      <section class="status-card">
+        <div><span class="muted">Wallet:</span> <span class="mono" id="walletView">Chưa kết nối</span></div>
+        <div><span class="muted">Logs:</span> <span class="mono" id="logView">Chờ thao tác...</span></div>
+      </section>
+    </main>
+    <script type="module" src="./assets/recovery.js"></script>
+  </body>
+</html>

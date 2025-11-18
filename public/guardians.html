@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guardians</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root{ color-scheme: light dark; font-family: Inter,system-ui,-apple-system,"Segoe UI",sans-serif; background:#0b0d12; color:#f6f9ff }
+      *{ box-sizing:border-box }
+      body{ margin:0; display:flex; justify-content:center; min-height:100vh; background: radial-gradient(circle at top, rgba(0,200,255,.25), transparent), #05060a }
+      main{ width:100%; max-width: 960px; padding: 2rem; margin: 2rem; border-radius: 20px; background: rgba(14,18,30,.92); border:1px solid rgba(80,200,255,.25) }
+      h1{ margin:0 0 .4rem; font-size:1.6rem }
+      .subtitle{ color:#b6e6ff; margin:0 0 1rem }
+      .panel{ border:1px solid rgba(80,200,255,.25); border-radius: 16px; padding: 1rem; margin-top: 1rem; background: rgba(8,12,20,.9) }
+      label{ display:block; font-weight:600; color:#cfeeff; margin:.35rem 0 }
+      input, textarea{ width:100%; padding:.8rem 1rem; border-radius:12px; border:1px solid rgba(120,210,255,.3); background: rgba(10,14,24,.85); color:#f6f9ff; font-size:.93rem }
+      textarea{ min-height: 110px; font-family: "JetBrains Mono","Fira Code",monospace }
+      button{ appearance:none; border:none; cursor:pointer; border-radius:12px; padding:.75rem 1.15rem; font-weight:600; background: linear-gradient(135deg, #00c2ff, #0078ff); color:#fff }
+      button.ghost{ background:transparent; border:1px dashed rgba(120,210,255,.35); color:#bde2ff }
+      .inline{ display:flex; gap:.6rem; flex-wrap:wrap }
+      pre{ font-family: "JetBrains Mono","Fira Code",monospace; background: rgba(5,8,14,.9); border:1px solid rgba(95,160,220,.35); border-radius:12px; padding:1rem; max-height:260px; overflow:auto; white-space: pre-wrap }
+      .muted{ color:#9ad4ff; font-size:.85rem }
+      .grid2{ display:grid; gap:1rem; grid-template-columns: 1fr }
+      @media (min-width: 860px){ .grid2{ grid-template-columns: 1fr 1fr } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Guardians</h1>
+      <p class="subtitle">Handshake E2EE với Holder → Derive sharedSecret → Tính commitment → Merkle path → ZKP.</p>
+
+      <section class="panel">
+        <h3>1) Kết nối ví</h3>
+        <div class="inline">
+          <button id="gConnect">Connect Wallet</button>
+          <div class="muted">Địa chỉ: <span id="gWallet">N/A</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h3>2) Tạo PreKey Bundle & Handshake</h3>
+        <div class="inline" style="margin-bottom:.6rem">
+          <button id="gGenBundle">Tạo PreKey Bundle</button>
+          <button id="gCopyBundle" class="ghost">Copy Bundle JSON</button>
+        </div>
+        <label>PreKey Bundle (Public JSON)</label>
+        <textarea id="gBundleOut" readonly placeholder='{"ik":"0x..","spk":"0x.."}'></textarea>
+        <div class="grid2" style="margin-top:.6rem">
+          <div>
+            <label for="gHolderIk">Holder IK Public (Hex từ Holder)</label>
+            <input id="gHolderIk" placeholder="0x..." />
+          </div>
+          <div>
+            <label for="gPolicyRef">policyId (bytes32)</label>
+            <input id="gPolicyRef" placeholder="0x..." />
+          </div>
+        </div>
+        <div class="inline" style="margin-top:.6rem">
+          <button id="gDeriveSecret">Derive Shared Secret</button>
+          <button id="gComputeCommitment" class="ghost">Tính Commitment</button>
+        </div>
+        <div class="grid2" style="margin-top:.6rem">
+          <div>
+            <label>Shared Secret (tự sinh)</label>
+            <input id="gSecret" readonly placeholder="0x..." />
+          </div>
+          <div>
+            <label>Commitment</label>
+            <input id="gCommitmentValue" readonly placeholder="0x..." />
+          </div>
+        </div>
+        <pre id="gCommitmentOut">(n/a)</pre>
+      </section>
+
+      <section class="panel">
+        <h3>3) Merkle Path</h3>
+        <label for="gCommitments">Danh sách commitments (JSON array hex 0x...)</label>
+        <textarea id="gCommitments" placeholder='["0x...","0x..."]'></textarea>
+        <div class="inline" style="margin-top:.6rem">
+          <button id="gComputePath">Tính merklePath</button>
+        </div>
+        <pre id="gPathOut">(n/a)</pre>
+      </section>
+
+      <section class="panel">
+        <h3>4) Tính Nullifier (Helper ZKP)</h3>
+        <p class="muted">Nullifier là vé một lần để bảo vệ chống replay attack. Công thức: nullifier = H(sharedSecret, recoveryRequestID)</p>
+        <div class="grid2" style="margin-top:.6rem">
+          <div>
+            <label for="gNullifierReqId">recoveryRequestID (bytes32)</label>
+            <input id="gNullifierReqId" placeholder="0x..." />
+          </div>
+          <div>
+            <label>Nullifier (keccak256)</label>
+            <input id="gNullifierOut" readonly placeholder="0x..." />
+          </div>
+        </div>
+        <div class="inline" style="margin-top:.6rem">
+          <button id="gComputeNullifier">Tính Nullifier</button>
+          <button id="gCopyNullifier" class="ghost">Copy Nullifier</button>
+        </div>
+        <pre id="gNullifierDisplay">(n/a)</pre>
+      </section>
+
+      <section class="panel">
+        <h3>5) Nộp Phiếu On-chain (ZKP)</h3>
+        <div class="grid2">
+          <div>
+            <label for="gContract">RecoveryContract Address</label>
+            <input id="gContract" placeholder="0x..." />
+          </div>
+          <div>
+            <label for="gPolicyId">policyId (bytes32)</label>
+            <input id="gPolicyId" placeholder="0x..." />
+          </div>
+          <div>
+            <label for="gReqId">recoveryRequestID (bytes32)</label>
+            <input id="gReqId" placeholder="0x..." />
+          </div>
+          <div>
+            <label for="gPublicInputs">publicInputs (JSON hoặc CSV, ví dụ ["0xnullifier","0xroot"])</label>
+            <input id="gPublicInputs" placeholder='["0x..","0x.."] hoặc 0x..,0x..' />
+          </div>
+        </div>
+        <div>
+          <label for="gProofHex">Proof (hex 0x...) – đầu ra từ snarkjs</label>
+          <textarea id="gProofHex" placeholder="0x..."></textarea>
+        </div>
+        <div class="inline" style="margin-top:.6rem">
+          <button id="gSubmitApproval">Submit Approval</button>
+        </div>
+        <pre id="gTxOut">(n/a)</pre>
+        <p class="muted">Nhập nullifier vừa tính được vào publicInputs. Ví dụ: ["0xnullifier","0xroot"]</p>
+      </section>
+    </main>
+    <script type="module" src="./assets/guardians.js"></script>
+  </body>
+</html>
